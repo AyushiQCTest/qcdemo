@@ -51,7 +51,7 @@ jobs:
       - name: Set up Firebase credentials
         run: |
           $credentialsJson = @'
-          ${{ secrets.FIREBASE_CREDENTIALS }}
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           '@
           $credentialsJson | Out-File -FilePath "$env:TEMP\firebase-key.json" -Encoding UTF8
           echo "GOOGLE_APPLICATION_CREDENTIALS=$env:TEMP\firebase-key.json" | Out-File -FilePath $env:GITHUB_ENV -Encoding UTF8 -Append
