@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   build-and-release:
@@ -49,14 +48,13 @@ jobs:
             --add-data "VERSION:." `
             QuantCopierTelegram.py
       
-      - name: Upload to GCS bucket
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Set up Firebase credentials
+        run: |
+          $credentialsJson = @'
+          ${{ secrets.FIREBASE_CREDENTIALS }}
+          '@
+          $credentialsJson | Out-File -FilePath "$env:TEMP\firebase-key.json" -Encoding UTF8
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$env:TEMP\firebase-key.json" | Out-File -FilePath $env:GITHUB_ENV -Encoding UTF8 -Append
       
       - name: Upload exe to bucket
         run: |
@@ -71,6 +69,11 @@ jobs:
           
           echo "Verify upload"
           gsutil ls -lh "$bucketPath/qcdemo.exe"
+      
+      - name: Clean up credentials
+        if: always()
+        run: |
+          Remove-Item -Force -ErrorAction SilentlyContinue "$env:TEMP\firebase-key.json"
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
