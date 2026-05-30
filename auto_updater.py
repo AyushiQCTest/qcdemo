@@ -100,23 +100,43 @@ class AutoUpdater:
                 data = json.loads(response.read().decode('utf-8'))
                 
                 latest_version = data.get('latest', '').lstrip('v')
-                base_url = data.get('url', '')
-                
-                if not latest_version or not base_url:
+                base_url = data.get('url') or data.get('baseUrl', '')
+                files = data.get('files') if isinstance(data.get('files'), dict) else {}
+                downloads = data.get('downloads') if isinstance(data.get('downloads'), dict) else {}
+
+                if not latest_version:
                     logger.warning("releases.json missing required fields")
                     return None
                 
-                # Determine the executable name to look for
+                # Determine component key from current executable name.
                 exe_name = self.exe_path.name if self.exe_path else None
-                
                 if not exe_name:
-                    # Default to setup.exe if we can't determine
                     exe_name = 'setup.exe'
+
+                component_key = None
+                exe_name_lower = exe_name.lower()
+                if 'setup' in exe_name_lower:
+                    component_key = 'mainInstaller'
+                elif 'telegram' in exe_name_lower or 'qc-demo' in exe_name_lower or 'qcdemo' in exe_name_lower:
+                    component_key = 'qcdemoSidecar'
+                elif 'api' in exe_name_lower:
+                    component_key = 'apiSidecar'
+
+                mapped_name = files.get(component_key) if component_key else None
+                if mapped_name:
+                    exe_name = mapped_name
+
+                download_url = downloads.get(component_key) if component_key else None
+                if not download_url:
+                    if not base_url:
+                        logger.warning("releases.json missing url/baseUrl and component downloads")
+                        return None
+                    download_url = f"{base_url}{exe_name}"
                 
                 return {
                     'version': latest_version,
                     'name': exe_name,
-                    'download_url': f"{base_url}{exe_name}",
+                    'download_url': download_url,
                     'size': 0  # Size not provided by releases.json
                 }
                 
