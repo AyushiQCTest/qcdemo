@@ -109,18 +109,22 @@ class AutoUpdater:
                     return None
                 
                 # Determine component key from current executable name.
-                exe_name = self.exe_path.name if self.exe_path else None
+                exe_name = Path(self.exe_path).name if self.exe_path else None
                 if not exe_name:
-                    exe_name = 'setup.exe'
+                    exe_name = 'QuantCopier.exe'
 
                 component_key = None
                 exe_name_lower = exe_name.lower()
-                if 'setup' in exe_name_lower:
-                    component_key = 'mainInstaller'
-                elif 'telegram' in exe_name_lower or 'qc-demo' in exe_name_lower or 'qcdemo' in exe_name_lower:
-                    component_key = 'qcdemoSidecar'
-                elif 'api' in exe_name_lower:
+
+                # Prefer explicit API sidecar detection
+                if 'quantcopierapi' in exe_name_lower or ('quantcopier' in exe_name_lower and 'api' in exe_name_lower) or exe_name_lower.endswith('api.exe'):
                     component_key = 'apiSidecar'
+                # UI sidecar detection
+                elif 'quantcopierui' in exe_name_lower or 'quant-copier-ui' in exe_name_lower or 'ui.exe' in exe_name_lower or 'telegram' in exe_name_lower or 'qc-demo' in exe_name_lower or 'qcdemo' in exe_name_lower:
+                    component_key = 'qcdemoSidecar'
+                # Main installer or primary app (catch-all for quantcopier without ui/api suffix)
+                elif 'quantcopier' in exe_name_lower and not ('ui' in exe_name_lower or 'api' in exe_name_lower):
+                    component_key = 'mainInstaller'
 
                 mapped_name = files.get(component_key) if component_key else None
                 if mapped_name:
